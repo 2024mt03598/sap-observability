@@ -1,0 +1,45 @@
+name: validate
+
+on:
+  pull_request:
+    paths: ["config/**", "scripts/**"]
+  workflow_call:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install promtool and amtool
+        run: |
+          curl -fsSL -o prom.tgz https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
+          curl -fsSL -o am.tgz https://github.com/prometheus/alertmanager/releases/download/v0.28.1/alertmanager-0.28.1.linux-amd64.tar.gz
+          tar xzf prom.tgz
+          tar xzf am.tgz
+          sudo install prometheus-3.5.0.linux-amd64/promtool /usr/local/bin/promtool
+          sudo install alertmanager-0.28.1.linux-amd64/amtool /usr/local/bin/amtool
+
+      - name: Check Prometheus alert rules
+        run: promtool check rules config/prometheus/rules/*.yml
+
+      - name: Check Alertmanager config
+        run: |
+          # dummy secret so the check does not need the real SMTP password
+          sudo mkdir -p /etc/alertmanager-secrets
+          echo dummy | sudo tee /etc/alertmanager-secrets/smtp_password >/dev/null
+          amtool check-config config/alertmanager/alertmanager.yml
+
+      - name: YAML syntax of remaining configs
+        run: |
+          python3 -c "
+          import yaml
+          for f in ['config/prometheus/prometheus.yml',
+                    'config/grafana/provisioning/datasources/prometheus.yml']:
+              yaml.safe_load(open(f)); print('ok', f)
+          "
+
+      - name: Shell syntax of deploy scripts
+        run: |
+          bash -n scripts/deploy_observability.sh
+          bash -n scripts/deploy_alloy.sh
