@@ -1,0 +1,58 @@
+name: deploy-alloy
+
+# Alloy config -> SAP/Oracle VM (r3server)
+on:
+  push:
+    branches: [main]
+    paths:
+      - "config/alloy/**"
+      - "scripts/deploy_alloy.sh"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-alloy
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: datapipeline_group
+  VM_NAME: r3server
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build run script (config payload + deploy script)
+        run: |
+          PAYLOAD=$(tar czf - -C config alloy | base64 -w0)
+          {
+            echo "cat > /tmp/deploy.sh <<'DEPLOY_EOF'"
+            cat scripts/deploy_alloy.sh
+            echo "DEPLOY_EOF"
+            echo "PAYLOAD='$PAYLOAD' bash /tmp/deploy.sh"
+          } > run.sh
+
+      - name: Deploy and restart Alloy (auto-rollback on failure)
+        run: |
+          OUT=$(az vm run-command invoke \
+            --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" \
+            --command-id RunShellScript --scripts @run.sh \
+            --query "value[0].message" -o tsv)
+          echo "$OUT"
+          echo "$OUT" | grep -q "DEPLOY_RESULT=OK"
