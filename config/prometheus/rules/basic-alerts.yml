@@ -1,0 +1,56 @@
+groups:
+  - name: basic
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.job }} on {{ $labels.instance }} is down"
+      - alert: HighCpuUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU above 85% on {{ $labels.instance }}"
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory above 90% on {{ $labels.instance }}"
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Less than 15% disk free on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+  - name: pushed-from-alloy
+    rules:
+      - alert: HostNotReporting
+        expr: time() - timestamp(last_over_time(up{job="alloy"}[1h])) > 300
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No metrics from {{ $labels.instance }} for 5+ minutes"
+      - alert: OracleDatabaseDown
+        expr: oracledb_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Oracle DB is down on {{ $labels.instance }}"
+      - alert: OracleMetricsMissing
+        expr: absent(oracledb_up)
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No oracledb_up metric received for 10 minutes (exporter, Alloy or remote_write may be down)"
+      # SAP alerts: add once the real metric names are confirmed with
+      #   curl -s localhost:9680/metrics | grep '^sap_'

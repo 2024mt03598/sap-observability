@@ -1,0 +1,47 @@
+logging {
+  level = "info"
+}
+
+// 1. Host System Metrics Exporter
+prometheus.exporter.unix "default" {
+  include_exporter_metrics = true
+}
+
+// 2. (removed) Embedded Oracle exporter.
+// The standalone oracledb_exporter on 127.0.0.1:9161 is scraped below, so the
+// embedded one would only duplicate every oracledb_* metric and open a 2nd DB session.
+
+// 3. Remote Write Destination: Prometheus on the observability VM
+prometheus.remote_write "central_backend" {
+  endpoint {
+    url = "http://172.16.0.5:9090/api/v1/write"
+  }
+}
+
+// 4. Scrape Pipeline
+// Same file works on every host: "instance" is filled in from the machine's hostname.
+// On other hosts, delete the exporter entries below that don't exist there.
+prometheus.scrape "default" {
+  targets = array.concat(
+    prometheus.exporter.unix.default.targets,
+    [
+      {
+        job         = "alloy",
+        instance    = constants.hostname,
+        __address__ = "127.0.0.1:12345",
+      },
+      {
+        job         = "sap_host_exporter",
+        instance    = constants.hostname,
+        __address__ = "127.0.0.1:9680",
+      },
+      {
+        job         = "oracle_db_exporter",
+        instance    = constants.hostname,
+        __address__ = "127.0.0.1:9161",
+      },
+    ],
+  )
+
+  forward_to = [prometheus.remote_write.central_backend.receiver]
+}

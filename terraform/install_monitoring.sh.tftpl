@@ -1,0 +1,270 @@
+#!/bin/bash
+# Installs Prometheus, Alertmanager, node_exporter and Grafana on SLES 15.
+# Executed by cloud-init as root on first boot. Log: /var/log/monitoring-install.log
+set -eux
+exec > >(tee -a /var/log/monitoring-install.log) 2>&1
+
+# On first boot another zypper (SUSE registration / auto-update) often holds the lock.
+# Let zypper wait for it, and retry commands that still fail.
+export ZYPP_LOCK_TIMEOUT=900
+retry() {
+  for attempt in 1 2 3 4 5 6; do
+    if "$@"; then return 0; fi
+    echo "command failed (attempt $attempt), retrying in 30s: $*"
+    sleep 30
+  done
+  return 1
+}
+
+PROM_VERSION="${prometheus_version}"
+AM_VERSION="${alertmanager_version}"
+NODE_VERSION="${node_exporter_version}"
+ARCH="linux-amd64"
+
+# ---- wait for outbound internet (GitHub + Grafana repo) ----
+for i in $(seq 1 30); do
+  if curl -fsI https://github.com >/dev/null; then break; fi
+  sleep 10
+done
+
+# ---- service users ----
+# SLES does not create a same-named group for system users, so create it explicitly
+for u in prometheus alertmanager node_exporter; do
+  getent group "$u" >/dev/null || groupadd --system "$u"
+  if id "$u" >/dev/null 2>&1; then
+    usermod -g "$u" "$u"
+  else
+    useradd --system --no-create-home --shell /usr/sbin/nologin -g "$u" "$u"
+  fi
+done
+
+cd /tmp
+
+# ================= node_exporter =================
+curl -fsSL -o node_exporter.tar.gz "https://github.com/prometheus/node_exporter/releases/download/v$NODE_VERSION/node_exporter-$NODE_VERSION.$ARCH.tar.gz"
+tar xzf node_exporter.tar.gz
+install -m 0755 "node_exporter-$NODE_VERSION.$ARCH/node_exporter" /usr/local/bin/node_exporter
+
+cat > /etc/systemd/system/node_exporter.service <<'UNIT'
+[Unit]
+Description=Prometheus Node Exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=node_exporter
+ExecStart=/usr/local/bin/node_exporter
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# ================= Prometheus =================
+curl -fsSL -o prometheus.tar.gz "https://github.com/prometheus/prometheus/releases/download/v$PROM_VERSION/prometheus-$PROM_VERSION.$ARCH.tar.gz"
+tar xzf prometheus.tar.gz
+install -m 0755 "prometheus-$PROM_VERSION.$ARCH/prometheus" /usr/local/bin/prometheus
+install -m 0755 "prometheus-$PROM_VERSION.$ARCH/promtool" /usr/local/bin/promtool
+
+mkdir -p /etc/prometheus/rules /var/lib/prometheus
+
+cat > /etc/prometheus/prometheus.yml <<'CFG'
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["localhost:9093"]
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["localhost:9093"]
+  - job_name: node
+    static_configs:
+      - targets: ["localhost:9100"]
+  - job_name: node-exporter-vms
+    static_configs:
+      - targets: ${jsonencode(monitored_targets)}
+%{ if length(alloy_targets) > 0 ~}
+  # Alloy's own (internal) metrics
+  - job_name: alloy
+    metrics_path: /metrics
+    static_configs:
+      - targets: ${jsonencode(alloy_targets)}
+%{ if alloy_unix_label != "" ~}
+  # Host metrics (CPU, memory, disk, network) from Alloy's embedded unix exporter
+  - job_name: alloy-host
+    metrics_path: /api/v0/component/prometheus.exporter.unix.${alloy_unix_label}/metrics
+    static_configs:
+      - targets: ${jsonencode(alloy_targets)}
+%{ endif ~}
+%{ endif ~}
+CFG
+
+cat > /etc/prometheus/rules/basic-alerts.yml <<'RULES'
+groups:
+  - name: basic
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.job }} on {{ $labels.instance }} is down"
+      - alert: HighCpuUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU above 85% on {{ $labels.instance }}"
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory above 90% on {{ $labels.instance }}"
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Less than 15% disk free on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+  - name: pushed-from-alloy
+    rules:
+      - alert: OracleDatabaseDown
+        expr: oracledb_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Oracle DB is down on {{ $labels.instance }}"
+      - alert: OracleMetricsMissing
+        expr: absent(oracledb_up)
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No oracledb_up metric received for 10 minutes (exporter, Alloy or remote_write may be down)"
+      # SAP alerts: add them once you have confirmed the real metric names with
+      #   curl -s localhost:9680/metrics | grep '^sap_'
+RULES
+
+chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
+/usr/local/bin/promtool check config /etc/prometheus/prometheus.yml
+
+cat > /etc/systemd/system/prometheus.service <<'UNIT'
+[Unit]
+Description=Prometheus
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=prometheus
+ExecStart=/usr/local/bin/prometheus \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --storage.tsdb.path=/var/lib/prometheus \
+  --storage.tsdb.retention.time=15d \
+  --web.enable-remote-write-receiver \
+  --web.listen-address=0.0.0.0:9090
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# ================= Alertmanager =================
+curl -fsSL -o alertmanager.tar.gz "https://github.com/prometheus/alertmanager/releases/download/v$AM_VERSION/alertmanager-$AM_VERSION.$ARCH.tar.gz"
+tar xzf alertmanager.tar.gz
+install -m 0755 "alertmanager-$AM_VERSION.$ARCH/alertmanager" /usr/local/bin/alertmanager
+install -m 0755 "alertmanager-$AM_VERSION.$ARCH/amtool" /usr/local/bin/amtool
+
+mkdir -p /etc/alertmanager /var/lib/alertmanager
+
+# Minimal config: alerts are received and shown in the UI but not sent anywhere.
+# Edit /etc/alertmanager/alertmanager.yml to add email/Slack/webhook, then:
+#   sudo systemctl restart alertmanager
+cat > /etc/alertmanager/alertmanager.yml <<'CFG'
+route:
+  receiver: default
+  group_by: ["alertname", "instance"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: default
+    # Example email receiver:
+    # email_configs:
+    #   - to: "you@example.com"
+    #     from: "alerts@example.com"
+    #     smarthost: "smtp.example.com:587"
+    #     auth_username: "alerts@example.com"
+    #     auth_password: "CHANGE_ME"
+CFG
+
+chown -R alertmanager:alertmanager /etc/alertmanager /var/lib/alertmanager
+/usr/local/bin/amtool check-config /etc/alertmanager/alertmanager.yml
+
+cat > /etc/systemd/system/alertmanager.service <<'UNIT'
+[Unit]
+Description=Prometheus Alertmanager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=alertmanager
+ExecStart=/usr/local/bin/alertmanager \
+  --config.file=/etc/alertmanager/alertmanager.yml \
+  --storage.path=/var/lib/alertmanager \
+  --web.listen-address=0.0.0.0:9093 \
+  --cluster.listen-address=
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# ================= Grafana (from the official RPM repo) =================
+retry rpm --import https://rpm.grafana.com/gpg.key
+zypper --non-interactive lr grafana >/dev/null 2>&1 || retry zypper --non-interactive addrepo --refresh https://rpm.grafana.com grafana
+retry zypper --non-interactive --gpg-auto-import-keys refresh
+retry zypper --non-interactive install grafana
+
+mkdir -p /etc/grafana/provisioning/datasources
+cat > /etc/grafana/provisioning/datasources/prometheus.yml <<'DS'
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://localhost:9090
+    isDefault: true
+DS
+chown -R root:grafana /etc/grafana/provisioning
+
+# ================= Start everything =================
+systemctl daemon-reload
+systemctl enable --now node_exporter prometheus alertmanager grafana-server
+
+# ---- open ports in the OS firewall if firewalld is running ----
+if systemctl is-active --quiet firewalld; then
+  for p in 9090 9093 9100 3000; do
+    firewall-cmd --permanent --add-port=$p/tcp
+  done
+  firewall-cmd --reload
+fi
+
+echo "Monitoring stack installation finished"

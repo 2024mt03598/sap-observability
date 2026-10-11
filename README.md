@@ -1,6 +1,3 @@
-# sap-observability
-A project for setting up observability layer for SAP  application
-
 # Observability repo (Prometheus, Alertmanager, Grafana, Alloy)
 
 Everything here is deployed by GitHub Actions. Nobody edits files on the servers by hand.

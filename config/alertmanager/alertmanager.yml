@@ -1,0 +1,16 @@
+route:
+  receiver: default
+  group_by: ["alertname", "instance"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: default
+    # Example email receiver. Never commit real passwords to Git:
+    # email_configs:
+    #   - to: "you@example.com"
+    #     from: "alerts@example.com"
+    #     smarthost: "smtp.example.com:587"
+    #     auth_username: "alerts@example.com"
+    #     auth_password_file: /etc/alertmanager/smtp_password   # create this file on the VM by hand
