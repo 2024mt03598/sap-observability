@@ -1,3 +1,10 @@
+global:
+  smtp_smarthost: "smtp.gmail.com:587"
+  smtp_from: "2024mt03598@wilp.bits-pilani.ac.in"
+  smtp_auth_username: "2024mt03598@wilp.bits-pilani.ac.in"
+  smtp_auth_password_file: /etc/alertmanager-secrets/smtp_password
+  smtp_require_tls: true
+
 route:
   receiver: default
   group_by: ["alertname", "instance"]
@@ -9,9 +16,5 @@ receivers:
   - name: default
     # Example email receiver. Never commit real passwords to Git:
     email_configs:
-     - to: "2024mt03598@wilp.bits-pilani.ac.in"
-       from: "alerts@sobservability.com"
-       smarthost: "smtp.gmail.com:587"
-       smtp_require_tls: "true"
-       auth_username: "alerts@observability.com"
-       auth_password_file: /etc/alertmanager-secrets/smtp_password   # create this file on the VM by hand
+     - to: "abhinav_tyagi@outlook.com"
+       send_resolved: true
