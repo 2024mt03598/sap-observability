@@ -1,0 +1,13 @@
+{{ define "email.default.subject" }}[FIRING:{{ .Alerts.Firing | len }}] {{ .CommonLabels.alertname }}{{ end }}
+{{ define "email.default.html" }}
+<html>
+<body>
+<h3>Alerts Firing:</h3>
+<ul>
+{{ range .Alerts }}
+  <li><strong>{{ .Labels.alertname }}</strong> - {{ .Annotations.summary }}</li>
+{{ end }}
+</ul>
+</body>
+</html>
+{{ end }}
