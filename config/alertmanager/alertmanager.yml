@@ -18,3 +18,5 @@ receivers:
     email_configs:
      - to: "abhinav_tyagi@outlook.com"
        send_resolved: true
+templates:
+  - '/etc/alertmanager/*.tmpl'
