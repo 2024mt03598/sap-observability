@@ -32,12 +32,12 @@ groups:
   - name: pushed-from-alloy
     rules:
       - alert: HostNotReporting
-        expr: time() - timestamp(last_over_time(up{job="alloy"}[1h])) > 300
-        for: 1m
+        expr: absent(up{job="alloy", instance="r3server"})
+        for: 3m
         labels:
           severity: critical
         annotations:
-          summary: "No metrics from {{ $labels.instance }} for 5+ minutes"
+          summary: "No metrics from r3server for 3+ minutes (host down or Alloy stopped)"
       - alert: OracleDatabaseDown
         expr: oracledb_up == 0
         for: 2m
