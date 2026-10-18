@@ -6,7 +6,8 @@ Everything here is deployed by GitHub Actions. Nobody edits files on the servers
 |---|---|
 | `config/prometheus/**` | validates, copies to r3server-tf, restarts **prometheus** only |
 | `config/alertmanager/**` | validates, copies to r3server-tf, restarts **alertmanager** only |
-| `config/grafana/**` | copies datasources to r3server-tf, restarts **grafana-server** only |
+| `config/grafana/provisioning/**` | copies to r3server-tf, restarts **grafana-server** only |
+| `config/grafana/dashboards/*.json` | copies to r3server-tf; Grafana loads them within ~30 s, **no restart** |
 | `config/alloy/r3server.alloy` | copies to r3server as `/etc/alloy/config.alloy`, restarts **alloy** |
 | `terraform/**` | PR: `plan`. Merge to main: `apply` (after approval) |
 
@@ -85,8 +86,40 @@ To add a host: copy `config/alloy/r3server.alloy` to `config/alloy/<host>.alloy`
 and the file name), and the instance label fills in from the hostname.
 
 ## Notes
-- **Secrets never go in this repo.** The Oracle password is not in any file here. For Alertmanager email passwords use `auth_password_file` and create that file on the VM by hand.
+- **Secrets never go in this repo.** The Oracle password is not in any file here. The Alertmanager SMTP password lives in `/etc/alertmanager-secrets/smtp_password` on r3server-tf (see "Email alerts" below). It is outside `/etc/alertmanager` on purpose, because each deploy replaces that folder.
 - `terraform/main.tf` ignores changes to `custom_data`, so editing the first-boot script never replaces the VM. To rebuild: `terraform apply -replace=azurerm_linux_virtual_machine.vm`.
 - A restart of Prometheus takes a few seconds; Alloy buffers data and resends it, so short gaps normally fill in.
 - Run Command needs the Azure VM agent (`waagent`) healthy on the VM. If a run times out, check `systemctl status waagent`.
 - Manual rollback: copy the newest folder under `/var/backups/config-deploy/` back to the config directory and restart the service.
+
+## Email alerts (SMTP)
+Alertmanager sends mail **outbound** through an SMTP relay, so no inbound port is needed on r3server-tf. Use port **587** (STARTTLS).
+Azure blocks outbound port 25 for most subscriptions, and an NSG rule cannot open it.
+
+1. Create the password file on r3server-tf **before** deploying the new `alertmanager.yml`:
+   ```
+   sudo mkdir -p /etc/alertmanager-secrets
+   sudo vi /etc/alertmanager-secrets/smtp_password        # paste ONLY the password / app password, no trailing spaces
+   sudo chown -R alertmanager:alertmanager /etc/alertmanager-secrets
+   sudo chmod 700 /etc/alertmanager-secrets && sudo chmod 600 /etc/alertmanager-secrets/smtp_password
+   ```
+2. Edit the three `smtp_*` values and the `to:` address in `config/alertmanager/alertmanager.yml`, open a pull request, merge, approve the deploy.
+3. Test: `amtool alert add TestAlert severity=warning --annotation=summary="SMTP test" --alertmanager.url=http://localhost:9093`
+   The mail arrives after about 30 seconds (`group_wait`).
+
+## Dashboards
+Dashboards are JSON files in `config/grafana/dashboards/`. Grafana loads them automatically (provider in
+`config/grafana/provisioning/dashboards/`). They are read-only in the UI: change the JSON in Git, not in Grafana.
+
+**Add a community dashboard (for example Node Exporter Full, ID 1860)**
+1. On grafana.com open the dashboard page and click **Download JSON**.
+2. Run `scripts/prepare_dashboard.sh ~/Downloads/<file>.json node-exporter-full`. It points the panels at the
+   datasource uid `prometheus` (set in `config/grafana/provisioning/datasources/prometheus.yml`) and writes the
+   result to `config/grafana/dashboards/node-exporter-full.json`.
+3. Commit, open a pull request (the `validate` job checks the JSON), merge, approve the deploy.
+
+**Change a dashboard you built in the Grafana UI**: dashboard > Share > Export > **Export for sharing externally** >
+Save to file, then run it through the same script.
+
+Dashboards that are not wired to the `prometheus` datasource show "No data". The datasource is deleted and recreated
+on each Grafana restart so its uid is always `prometheus`.

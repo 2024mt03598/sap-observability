@@ -243,6 +243,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
     monitored_targets     = var.monitored_targets
     alloy_targets         = var.alloy_targets
     alloy_unix_label      = var.alloy_unix_label
+    external_ip           = azurerm_public_ip.pip.ip_address
   }))
 }
 

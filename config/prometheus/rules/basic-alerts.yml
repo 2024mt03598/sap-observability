@@ -9,14 +9,14 @@ groups:
         annotations:
           summary: "Target {{ $labels.job }} on {{ $labels.instance }} is down"
       - alert: HighCpuUsage
-        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 65
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
         for: 10m
         labels:
           severity: warning
         annotations:
           summary: "CPU above 85% on {{ $labels.instance }}"
       - alert: HighMemoryUsage
-        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
         for: 10m
         labels:
           severity: warning
@@ -32,12 +32,12 @@ groups:
   - name: pushed-from-alloy
     rules:
       - alert: HostNotReporting
-        expr: absent(up{job="alloy", instance="r3server"})
-        for: 3m
+        expr: time() - timestamp(last_over_time(up{job="alloy"}[1h])) > 300
+        for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "No metrics from r3server for 3+ minutes (host down or Alloy stopped)"
+          summary: "No metrics from {{ $labels.instance }} for 5+ minutes"
       - alert: OracleDatabaseDown
         expr: oracledb_up == 0
         for: 2m
@@ -54,49 +54,3 @@ groups:
           summary: "No oracledb_up metric received for 10 minutes (exporter, Alloy or remote_write may be down)"
       # SAP alerts: add once the real metric names are confirmed with
       #   curl -s localhost:9680/metrics | grep '^sap_'
-  - name: SAP_System_Alerts
-    rules:
-      # 1. CRITICAL: SAP Process is Stopped
-      - alert: SAPProcessStopped
-        expr: sap_start_service_processes{status="Stopped"} == 1
-        for: 2m
-        labels:
-          severity: critical
-          tier: sap
-        annotations:
-          summary: "SAP process {{ $labels.name }} is stopped"
-          description: "The SAP process {{ $labels.name }} (PID {{ $labels.pid }}) on instance {{ $labels.instance_name }} (SID: {{ $labels.SID }}) has been in a Stopped state for more than 2 minutes."
-
-      # 2. WARNING: High File Descriptor Usage (Risk of process crashing)
-      - alert: SAPHighFileDescriptors
-        expr: (process_open_fds / process_max_fds) * 100 > 80
-        for: 5m
-        labels:
-          severity: warning
-          tier: sap
-        annotations:
-          summary: "High file descriptor utilization on {{ $labels.instance }}"
-          description: "The SAP exporter process is using {{ $value | printf \"%.2f\" }}% of its maximum allowed open file descriptors."
-
-      # 3. WARNING: High CPU Usage Trend
-      - alert: SAPExporterHighCpu
-        expr: rate(process_cpu_seconds_total[5m]) > 0.8
-        for: 10m
-        labels:
-          severity: warning
-          tier: sap
-        annotations:
-          summary: "High CPU usage by SAP metric exporter"
-          description: "The SAP monitoring exporter on {{ $labels.instance }} is consuming more than 80% of a CPU core over the last 10 minutes."
-
-      # 4. CRITICAL: Exporter Scraping Issues (Internal 500/503 errors)
-      - alert: SAPMetricsScrapeFailed
-        expr: rate(promhttp_metric_handler_requests_total{code=~"5.."}[5m]) > 0
-        for: 2m
-        labels:
-          severity: critical
-          tier: sap
-        annotations:
-          summary: "SAP metric handler is failing"
-          description: "The HTTP endpoint for gathering SAP metrics on {{ $labels.instance }} is returning internal server errors (5xx codes)."
-

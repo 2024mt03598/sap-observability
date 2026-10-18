@@ -1,6 +1,13 @@
 apiVersion: 1
+
+# Remove and recreate so the fixed uid below always wins, even on an existing Grafana.
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+
 datasources:
   - name: Prometheus
+    uid: prometheus
     type: prometheus
     access: proxy
     url: http://localhost:9090
