@@ -3,7 +3,7 @@ providers:
   - name: repo-dashboards
     orgId: 1
     type: file
-    disableDeletion: true
+    disableDeletion: false
     allowUiUpdates: false          # the Git copy is the truth; UI edits are not kept
     updateIntervalSeconds: 30      # new/changed JSON files appear without a Grafana restart
     options:
