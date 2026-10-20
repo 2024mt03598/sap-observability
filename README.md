@@ -1,4 +1,3 @@
-
 ## Startup  Sequence  (SAP , DB , Exporters)
 
 Start SAP systems : 
@@ -9,7 +8,7 @@ Login in with user orasre on r3server & execute commands below on sql prompt
 
 #r3server > sudo su  - orasre 
 #r3server > sqlplus / as sysdba 
- >  startup 
+#r3server >  startup 
 
 # 2 >  Start  oracle Listener 
 
@@ -124,8 +123,6 @@ r3server:~ # sudo systemctl status alloy --no-pager
 
              └─ 1852 /usr/bin/alloy run --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy 
 
-.........................
-Hint: Some lines were ellipsized, use -l to show in full. 
 
 r3server:~ # sudo systemctl status oracle-db-exporter  
 ● oracle-db-exporter.service - Oracle DB Exporter for Prometheus 
@@ -144,8 +141,6 @@ r3server:~ # sudo systemctl status oracle-db-exporter
 
              └─ 1623 /usr/local/bin/oracledb_exporter --config.file=/etc/oracle-db-exporter/config.yaml 
 
- ..............................
-Oct 20 05:34:29 r3server oracledb_exporter[1623]: time=2026-10-20T05:34:29.791Z level=ERROR source=alertlog.go:226 msg="Error querying the alert logs" error="dpiStmt_execut> 
 
 r3server:~ # systemctl status prometheus-sap_host_exporter@D00  
 
@@ -166,17 +161,6 @@ r3server:~ # systemctl status prometheus-sap_host_exporter@D00
      CGroup: /system.slice/system-prometheus\x2dsap_host_exporter.slice/prometheus-sap_host_exporter@D00.service 
 
              └─ 22457 /usr/bin/sap_host_exporter --config /etc/sap_host_exporter/D00.yaml 
-
-  
-
-Oct 20 05:28:37 r3server systemd[1]: Started Prometheus exporter for Netweaver clusters metrics. 
-............................
-Oct 20 05:28:37 r3server sap_host_exporter[22457]: time="2026-10-20T05:28:37Z" level=info msg="Serving metrics on 0.0.0.0:9680" 
-
-r3server:~ #  
-
- 
-
 
 # Observability repo (Prometheus, Alertmanager, Grafana, Alloy)
 
