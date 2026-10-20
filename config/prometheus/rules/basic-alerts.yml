@@ -31,8 +31,8 @@ groups:
           summary: "Less than 15% disk free on {{ $labels.instance }} ({{ $labels.mountpoint }})"
   - name: pushed-from-alloy
     rules:
-        - alert: HostNotReporting
-        expr: absent(up{job="alloy", instance="r3server"})
+      - alert: HostNotReporting
+        expr: absent(up {job="alloy", instance="r3server"})
         for: 3m
         labels:
           severity: critical
