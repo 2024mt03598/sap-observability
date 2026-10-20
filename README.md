@@ -1,3 +1,183 @@
+
+## Startup  Sequence  (SAP , DB , Exporters)
+
+Start SAP systems : 
+
+# 1 > start the Database  
+
+Login in with user orasre on r3server & execute commands below on sql prompt 
+
+#r3server > sudo su  - orasre 
+#r3server > sqlplus / as sysdba 
+ >  startup 
+
+# 2 >  Start  oracle Listener 
+
+Login in with user orasre on r3server & execute commands below  
+
+#r3server > sudo su  - orasre 
+#r3server > lsnrctl  start LISTENER 
+
+ 
+# 3 >  Start SAP systems. 
+
+Login in with user sreadm on r3server & execute commands below  
+
+#r3server > sudo su  - sreadm  
+#r3server >  startsap 
+ 
+
+ ## Start Data collectors 
+
+ 
+# 1. Start SAP Host Exporter 
+
+systemctl start prometheus-sap_host_exporter@D00 
+
+systemctl status prometheus-sap_host_exporter@D00 
+
+  
+
+# 2. Start Oracle DB Exporter 
+
+sudo systemctl start oracle-db-exporter 
+
+sudo systemctl status oracle-db-exporter 
+
+  
+
+# 3. Start Alloy 
+
+sudo systemctl start alloy --no-pager 
+
+sudo systemctl status alloy --no-pager 
+
+Stop Sequence 
+
+Stop the components in the reverse order: 
+
+Shell 
+
+# 1. Stop Alloy 
+
+sudo systemctl stop alloy --no-pager 
+sudo systemctl status alloy --no-pager 
+
+# 2. Stop Oracle DB Exporter 
+
+sudo systemctl stop oracle-db-exporter 
+sudo systemctl status oracle-db-exporter 
+
+# 3. Stop SAP Host Exporter 
+
+systemctl stop prometheus-sap_host_exporter@D00 
+systemctl status prometheus-sap_host_exporter@D00 
+
+Summary 
+
+
+
+## Stop SAP systems : 
+
+  
+# 1>  Stop SAP systems. 
+
+Login in with user sreadm on r3server & execute commands below  
+#r3server > sudo su  - sreadm  
+#r3server >  stopsap r3 
+
+
+# 2 >  Stop oracle Listener 
+
+Login in with user orasre on r3server & execute commands below  
+#r3server > sudo su  - orasre 
+#r3server > lsnrctl  stop LISTENER 
+
+
+# 3> Stop the Database  
+
+Login in with user orasre on r3server & execute commands below on sql prompt 
+#r3server > sudo su  - orasre 
+#r3server > sqlplus / as sysdba 
+ >  shutdown immediate
+ 
+
+# Status Check : 
+
+r3server:~ #  
+r3server:~ # sudo systemctl status alloy --no-pager  
+● alloy.service - Vendor-agnostic OpenTelemetry Collector distribution with programmable pipelines 
+
+     Loaded: loaded (/usr/lib/systemd/system/alloy.service; enabled; vendor preset: disabled) 
+
+     Active: active (running) since Tue 2026-10-20 04:09:15 UTC; 1h 37min ago 
+
+       Docs: https://grafana.com/docs/alloy 
+
+   Main PID: 1852 (alloy) 
+
+      Tasks: 17 
+
+        CPU: 16.114s 
+
+     CGroup: /system.slice/alloy.service 
+
+             └─ 1852 /usr/bin/alloy run --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy 
+
+.........................
+Hint: Some lines were ellipsized, use -l to show in full. 
+
+r3server:~ # sudo systemctl status oracle-db-exporter  
+● oracle-db-exporter.service - Oracle DB Exporter for Prometheus 
+
+     Loaded: loaded (/etc/systemd/system/oracle-db-exporter.service; enabled; vendor preset: disabled) 
+
+     Active: active (running) since Tue 2026-10-20 04:09:14 UTC; 1h 38min ago 
+
+   Main PID: 1623 (oracledb_export) 
+
+      Tasks: 17 
+
+        CPU: 814ms 
+
+     CGroup: /system.slice/oracle-db-exporter.service 
+
+             └─ 1623 /usr/local/bin/oracledb_exporter --config.file=/etc/oracle-db-exporter/config.yaml 
+
+ ..............................
+Oct 20 05:34:29 r3server oracledb_exporter[1623]: time=2026-10-20T05:34:29.791Z level=ERROR source=alertlog.go:226 msg="Error querying the alert logs" error="dpiStmt_execut> 
+
+r3server:~ # systemctl status prometheus-sap_host_exporter@D00  
+
+● prometheus-sap_host_exporter@D00.service - Prometheus exporter for Netweaver clusters metrics 
+
+     Loaded: loaded (/usr/lib/systemd/system/prometheus-sap_host_exporter@.service; disabled; vendor preset: disabled) 
+
+     Active: active (running) since Tue 2026-10-20 05:28:37 UTC; 18min ago 
+
+       Docs: https://github.com/SUSE/sap_host_exporter 
+
+   Main PID: 22457 (sap_host_export) 
+
+      Tasks: 4 
+
+        CPU: 55ms 
+
+     CGroup: /system.slice/system-prometheus\x2dsap_host_exporter.slice/prometheus-sap_host_exporter@D00.service 
+
+             └─ 22457 /usr/bin/sap_host_exporter --config /etc/sap_host_exporter/D00.yaml 
+
+  
+
+Oct 20 05:28:37 r3server systemd[1]: Started Prometheus exporter for Netweaver clusters metrics. 
+............................
+Oct 20 05:28:37 r3server sap_host_exporter[22457]: time="2026-10-20T05:28:37Z" level=info msg="Serving metrics on 0.0.0.0:9680" 
+
+r3server:~ #  
+
+ 
+
+
 # Observability repo (Prometheus, Alertmanager, Grafana, Alloy)
 
 Everything here is deployed by GitHub Actions. Nobody edits files on the servers by hand.
