@@ -1,5 +1,4 @@
 {
-  
   "title": "Full-Stack Observability",
   "tags": [
     "sap",
@@ -9,9 +8,7 @@
   "metadata": {
     "name": "fullstack_observability",
     "uid": "fullstack_observability_v1"
-
-    }
-  },
+    },
   "spec": {
     "annotations": [
       {
