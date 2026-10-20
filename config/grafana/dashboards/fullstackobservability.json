@@ -2275,7 +2275,7 @@
       "timezone": "browser",
       "to": "now"
     },
-    "title": "SAP NetWeaver Stats",
+    "title": "Full Stack Observability",
     "variables": []
   }
 }
