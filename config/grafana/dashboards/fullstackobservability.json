@@ -2,24 +2,7 @@
   "apiVersion": "dashboard.grafana.app/v2",
   "kind": "Dashboard",
   "metadata": {
-    "name": "nw-overview",
-    "namespace": "default",
-    "uid": "9855c62b-2ffb-4ad4-8026-bd129ca1a30e",
-    "resourceVersion": "1792473729277011",
-    "generation": 1,
-    "creationTimestamp": "2026-10-20T05:22:09Z",
-    "labels": {
-      "grafana.app/deprecatedInternalID": "225817737203712"
-    },
-    "annotations": {
-      "grafana.app/createdBy": "access-policy:service",
-      "grafana.app/managedBy": "classic-file-provisioning",
-      "grafana.app/managerId": "repo-dashboards",
-      "grafana.app/sourceChecksum": "f16d56d5017208ed428798a572153491",
-      "grafana.app/sourcePath": "/var/lib/grafana/dashboards/sap_observability_nw.json",
-      "grafana.app/sourceTimestamp": "1792473697000",
-      "grafana.app/folder": ""
-    }
+    "name": "nw-overview"
   },
   "spec": {
     "annotations": [
@@ -1085,8 +1068,7 @@
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "fixedColor": "#ad46ff",
-                    "mode": "fixed"
+                    "mode": "continuous-GrYlRd"
                   },
                   "decimals": 2,
                   "displayName": "",
@@ -1174,7 +1156,7 @@
                     "properties": [
                       {
                         "id": "displayName",
-                        "value": "Status"
+                        "value": "PSAPSR3 Tablespace usage %"
                       },
                       {
                         "id": "unit",
@@ -1246,7 +1228,7 @@
               },
               "options": {
                 "barShape": "flat",
-                "barWidthFactor": 0.5,
+                "barWidthFactor": 0.54,
                 "effects": {
                   "barGlow": false,
                   "centerGlow": false,
@@ -1295,8 +1277,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
+                        "editorMode": "code",
                         "expr": "count(sap_start_service_instances == 1)",
-                        "legendFormat": "GRAY"
+                        "legendFormat": "GRAY",
+                        "range": true
                       },
                       "version": "v0"
                     },
@@ -1376,11 +1360,8 @@
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "fixedColor": "#ad46ff",
                     "mode": "thresholds"
                   },
-                  "decimals": 0,
-                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1393,8 +1374,7 @@
                         "value": 80
                       }
                     ]
-                  },
-                  "unit": "short"
+                  }
                 },
                 "overrides": [
                   {
@@ -1402,120 +1382,56 @@
                       "id": "byName",
                       "options": "GRAY"
                     },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "rgb(128, 128, 128)",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
+                    "properties": []
                   },
                   {
                     "matcher": {
                       "id": "byName",
                       "options": "GREEN"
                     },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "green",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
+                    "properties": []
                   },
                   {
                     "matcher": {
                       "id": "byName",
                       "options": "RED"
                     },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "red",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
+                    "properties": []
                   },
                   {
                     "matcher": {
                       "id": "byName",
                       "options": "YELLOW"
                     },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "yellow",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
+                    "properties": []
                   },
                   {
                     "matcher": {
                       "id": "byName",
                       "options": "GRAY"
                     },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "rgb(128, 128, 128)",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
+                    "properties": []
                   },
                   {
                     "matcher": {
                       "id": "byName",
                       "options": "GREEN"
                     },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "green",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
+                    "properties": []
                   },
                   {
                     "matcher": {
                       "id": "byName",
                       "options": "RED"
                     },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "red",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
+                    "properties": []
                   },
                   {
                     "matcher": {
                       "id": "byName",
                       "options": "YELLOW"
                     },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "yellow",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
+                    "properties": []
                   }
                 ]
               },
@@ -1637,21 +1553,26 @@
           "links": [],
           "title": "Process Status",
           "vizConfig": {
-            "group": "gauge",
+            "group": "bargauge",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "continuous-GrYlRd"
                   },
                   "decimals": 0,
+                  "displayName": "SAP Start Service SAP processes Count & State",
                   "thresholds": {
-                    "mode": "absolute",
+                    "mode": "percentage",
                     "steps": [
                       {
                         "color": "green",
                         "value": 0
+                      },
+                      {
+                        "color": "orange",
+                        "value": 60
                       },
                       {
                         "color": "red",
@@ -1785,17 +1706,18 @@
                 ]
               },
               "options": {
-                "barShape": "flat",
-                "barWidthFactor": 0.3,
-                "effects": {
-                  "barGlow": false,
-                  "centerGlow": false,
-                  "gradient": true
+                "displayMode": "lcd",
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
                 },
-                "endpointMarker": "point",
-                "minVizHeight": 75,
-                "minVizWidth": 75,
-                "orientation": "auto",
+                "maxVizHeight": 300,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "auto",
+                "orientation": "horizontal",
                 "reduceOptions": {
                   "calcs": [
                     "lastNotNull"
@@ -1803,14 +1725,9 @@
                   "fields": "",
                   "values": false
                 },
-                "segmentCount": 1,
-                "segmentSpacing": 0.3,
-                "shape": "gauge",
-                "showThresholdLabels": false,
-                "showThresholdMarkers": false,
+                "showUnfilled": true,
                 "sizing": "auto",
-                "sparkline": true,
-                "textMode": "auto"
+                "valueMode": "text"
               }
             },
             "version": "13.2.3"
