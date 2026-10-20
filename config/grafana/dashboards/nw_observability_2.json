@@ -2,7 +2,7 @@
    "uid": "nw-overview_v2",
   "title": "SAP Observability Overview",
   "tags": [
-    "repo",
+    "sap",
     "overview"
   ],
   "schemaVersion": 39,
@@ -12,6 +12,7 @@
   "time": {
     "from": "now-6h",
     "to": "now"
+  }
   ,
   "spec": {
     "annotations": [
