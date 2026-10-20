@@ -52,5 +52,54 @@ groups:
           severity: critical
         annotations:
           summary: "No oracledb_up metric received for 10 minutes (exporter, Alloy or remote_write may be down)"
-      # SAP alerts: add once the real metric names are confirmed with
-      #   curl -s localhost:9680/metrics | grep '^sap_'
+  - name: sap_netweaver_alerts
+    rules:
+      #  Dispatcher Queue Depth Threshold / High
+      - alert: SAPDispatcherQueueDepthHigh
+        expr: sap_dispatcher_queue_now > 80
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SAP Dispatcher queue depth high on {{ $labels.instance_name }}"
+          description: "The dispatcher queue depth for type {{ $labels.type }} on instance {{ $labels.instance_name }} is current at {{ $value }} (exceeds threshold of 80)."
+
+      #  Dispatcher Queue High (Absolute threshold reached)
+      - alert: SAPDispatcherQueueDepthHighWatermark
+        expr: sap_dispatcher_queue_high >= 40
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SAP Dispatcher queue high watermark reached on {{ $labels.instance_name }}"
+          description: "The peak dispatcher queue depth for type {{ $labels.type }} on instance {{ $labels.instance_name }} reached {{ $value }}."
+
+      # Oracle Session Utilization Exceeded
+      - alert: OracleSessionsUtilizationHigh
+        expr: (oracledb_resource_current_utilization{job="oracle_db_exporter", resource_name="sessions"} / oracledb_resource_limit_value{resource_name="sessions"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Oracle DB session utilization high"
+          description: "Oracle database active session utilization has reached {{ $value | printf \"%.2f\" }}% of max limit (threshold is 80%)."
+
+      #Low Free Space on /oracle/SRE/oraarch
+      - alert: OracleArchiveSpaceLow
+        expr: (node_filesystem_free_bytes{mountpoint="/oracle/SRE/oraarch"} / node_filesystem_size_bytes{mountpoint="/oracle/SRE/oraarch"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Oracle Archive Log space critically low"
+          description: "Free space on /oracle/SRE/oraarch is at {{ $value | printf \"%.2f\" }}% on instance {{ $labels.instance }}."
+
+      #Low Free Space on Root Filesystem
+      - alert: RootFilesystemSpaceLow
+        expr: (node_filesystem_free_bytes{mountpoint="/"}/ node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Root filesystem space low"
+          description: "Free space on root mountpoint (/) is at {{ $value | printf \"%.2f\" }}% on instance {{ $labels.instance }}." 
