@@ -33,7 +33,7 @@ groups:
     rules:
       - alert: HostNotReporting
         expr: absent(up {job="alloy", instance="r3server"})
-        for: 3m
+        for: 2m
         labels:
           severity: critical
         annotations:
@@ -47,7 +47,7 @@ groups:
           summary: "Oracle DB is down on {{ $labels.instance }}"
       - alert: OracleMetricsMissing
         expr: absent(oracledb_up)
-        for: 10m
+        for: 2m
         labels:
           severity: critical
         annotations:
@@ -57,7 +57,7 @@ groups:
       #  Dispatcher Queue Depth Threshold / High
       - alert: SAPDispatcherQueueDepthHigh
         expr: sap_dispatcher_queue_now > 80
-        for: 5m
+        for: 2m
         labels:
           severity: critical
         annotations:
@@ -77,7 +77,7 @@ groups:
       # Oracle Session Utilization Exceeded
       - alert: OracleSessionsUtilizationHigh
         expr: (oracledb_resource_current_utilization{job="oracle_db_exporter", resource_name="sessions"} / oracledb_resource_limit_value{resource_name="sessions"}) * 100 > 80
-        for: 5m
+        for: 2m
         labels:
           severity: critical
         annotations:
@@ -87,7 +87,7 @@ groups:
       #Low Free Space on /oracle/SRE/oraarch
       - alert: OracleArchiveSpaceLow
         expr: (node_filesystem_free_bytes{mountpoint="/oracle/SRE/oraarch"} / node_filesystem_size_bytes{mountpoint="/oracle/SRE/oraarch"}) * 100 < 20
-        for: 5m
+        for: 2m
         labels:
           severity: critical
         annotations:
@@ -97,7 +97,7 @@ groups:
       #Low Free Space on Root Filesystem
       - alert: RootFilesystemSpaceLow
         expr: (node_filesystem_free_bytes{mountpoint="/"}/ node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
-        for: 5m
+        for: 2m
         labels:
           severity: warning
         annotations:
