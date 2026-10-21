@@ -146,101 +146,6 @@
           }
         }
       },
-      "panel-16": {
-        "kind": "Panel",
-        "spec": {
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "group": "prometheus",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sap_dispatcher_queue_high",
-                        "instant": true,
-                        "legendFormat": "{{type}} {{instance_name}}"
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "A"
-                  }
-                }
-              ],
-              "queryOptions": {},
-              "transformations": []
-            }
-          },
-          "description": "",
-          "id": 16,
-          "links": [],
-          "title": "Dispatcher Queue Depth Threshold",
-          "vizConfig": {
-            "group": "bargauge",
-            "kind": "VizConfig",
-            "spec": {
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "decimals": 0,
-                  "max": 15000,
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green",
-                        "value": 0
-                      },
-                      {
-                        "color": "green",
-                        "value": 5000
-                      }
-                    ]
-                  },
-                  "unit": "short"
-                },
-                "overrides": []
-              },
-              "options": {
-                "displayMode": "basic",
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "maxVizHeight": 300,
-                "minVizHeight": 16,
-                "minVizWidth": 8,
-                "namePlacement": "auto",
-                "orientation": "horizontal",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": true
-                },
-                "showUnfilled": true,
-                "sizing": "auto",
-                "valueMode": "color"
-              }
-            },
-            "version": "13.2.3"
-          }
-        }
-      },
       "panel-18": {
         "kind": "Panel",
         "spec": {
@@ -355,7 +260,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(oracledb_resource_current_utilization{job=\"oracle_db_exporter\",resource_name=\"sessions\"} / oracledb_resource_limit_value{resource_name=\"sessions\"}) * 100 > 15",
+                        "expr": "(oracledb_resource_current_utilization{job=\"oracle_db_exporter\", resource_name=\"sessions\"} / oracledb_resource_limit_value{resource_name=\"sessions\"}) * 100",
                         "instant": false,
                         "legendFormat": "__auto",
                         "range": true
@@ -608,7 +513,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(node_filesystem_free_bytes{mountpoint=\"/oracle/SRE/oraarch\"} / node_filesystem_size_bytes{mountpoint=\"/oracle/SRE/oraarch\"}) * 100 < 60",
+                        "expr": "(node_filesystem_free_bytes{mountpoint=\"/oracle/SRE/oraarch\"} / node_filesystem_size_bytes{mountpoint=\"/oracle/SRE/oraarch\"}) * 100",
                         "legendFormat": "__auto",
                         "range": true
                       },
@@ -730,7 +635,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(node_filesystem_free_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100 < 60",
+                        "expr": "(node_filesystem_free_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100",
                         "legendFormat": "Lock",
                         "range": true
                       },
@@ -1033,7 +938,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "oracledb_tablespace_used_percent{  job=\"oracle_db_exporter\", tablespace=~\"PSAPSR3*\"} > 15",
+                        "expr": "oracledb_tablespace_used_percent{job=\"oracle_db_exporter\", tablespace=~\"PSAPSR3*\"}",
                         "format": "table",
                         "instant": true
                       },
@@ -1457,6 +1362,102 @@
           }
         }
       },
+      "panel-31": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(sap_start_service_processes{SID=\"SRE\"} == 2 ) by ( name)",
+                        "instant": true,
+                        "legendFormat": "__auto"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 31,
+          "links": [],
+          "title": " Traffic spikes across work process",
+          "vizConfig": {
+            "group": "bargauge",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 40
+                      },
+                      {
+                        "color": "red",
+                        "value": 100
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "options": {
+                "displayMode": "basic",
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "maxVizHeight": 300,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "auto",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "fields": "",
+                  "values": true
+                },
+                "showUnfilled": true,
+                "sizing": "auto",
+                "valueMode": "color"
+              }
+            },
+            "version": "13.2.3"
+          }
+        }
+      },
       "panel-4": {
         "kind": "Panel",
         "spec": {
@@ -1562,7 +1563,7 @@
                     "mode": "continuous-GrYlRd"
                   },
                   "decimals": 0,
-                  "displayName": "SAP Start Service SAP processes Count & State",
+                  "displayName": "SAPStartSrv processes Count & State",
                   "thresholds": {
                     "mode": "percentage",
                     "steps": [
@@ -2004,7 +2005,7 @@
                   ]
                 }
               },
-              "title": "Start Service"
+              "title": "Oracle Metrics"
             }
           },
           {
@@ -2073,7 +2074,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-14"
+                          "name": "panel-6"
                         },
                         "height": 5,
                         "width": 8,
@@ -2099,7 +2100,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-16"
+                          "name": "panel-31"
                         },
                         "height": 15,
                         "width": 8,
@@ -2112,7 +2113,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-6"
+                          "name": "panel-8"
                         },
                         "height": 5,
                         "width": 8,
@@ -2125,7 +2126,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-8"
+                          "name": "panel-14"
                         },
                         "height": 5,
                         "width": 8,
@@ -2187,10 +2188,10 @@
         "1d"
       ],
       "fiscalYearStartMonth": 0,
-      "from": "now-30m",
+      "from": "2026-10-21T00:25:32.711Z",
       "hideTimepicker": false,
       "timezone": "browser",
-      "to": "now"
+      "to": "2026-10-21T00:27:03.209Z"
     },
     "title": "Full Stack Observability",
     "variables": []
