@@ -304,13 +304,13 @@ Validation
     ↓
 Service Restart
     ↓
-Success ✅
+Success 
 
 or
 
 Failure
     ↓
-Automatic Rollback ✅
+Automatic Rollback 
 
 Lifecycle Summary
 Terraform
