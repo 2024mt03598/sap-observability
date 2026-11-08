@@ -1,0 +1,54 @@
+name: deploy-sapcontrol-exporter
+
+# SAPControl exporter -> SAP host (r3server)
+on:
+  push:
+    branches: [main]
+    paths:
+      - "exporters/sapcontrol/**"
+      - "scripts/deploy_sapcontrol_exporter.sh"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-sapcontrol-exporter
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: datapipeline_group
+  VM_NAME: r3server
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build run script (payload + deploy script)
+        run: |
+          PAYLOAD=$(tar czf - -C exporters sapcontrol/sapcontrol_exporter.py sapcontrol/sapcontrol-exporter.service | base64 -w0)
+          {
+            echo "cat > /tmp/deploy.sh <<'DEPLOY_EOF'"
+            cat scripts/deploy_sapcontrol_exporter.sh
+            echo "DEPLOY_EOF"
+            echo "PAYLOAD='$PAYLOAD' bash /tmp/deploy.sh"
+          } > run.sh
+
+      - name: Install the exporter on r3server (auto-rollback on failure)
+        run: |
+          OUT=$(az vm run-command invoke \
+            --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" \
+            --command-id RunShellScript --scripts @run.sh \
+            --query "value[0].message" -o tsv)
+          echo "$OUT"
+          echo "$OUT" | grep -q "DEPLOY_RESULT=OK"
