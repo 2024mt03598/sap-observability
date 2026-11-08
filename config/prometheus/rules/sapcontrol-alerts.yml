@@ -1,0 +1,56 @@
+# Starter alerts for the metrics of the custom SAPControl exporter.
+# Thresholds are examples: tune them after you have seen real values in Grafana.
+groups:
+  - name: sapcontrol
+    rules:
+      - alert: SapControlUnreachable
+        expr: sapcontrol_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "sapstartsrv cannot be reached on {{ $labels.instance }} (instance {{ $labels.sap_instance_nr }})"
+      - alert: SapProcessNotGreen
+        expr: sapcontrol_process_status >= 3
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SAP process {{ $labels.name }} is {{ $labels.textstatus }} on {{ $labels.instance }}"
+      - alert: SapDialogWorkProcessesBusy
+        expr: |
+          sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="DIA", status=~"Running|Run"})
+            / sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="DIA"}) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 90% of dialog work processes are running on {{ $labels.instance }}"
+      - alert: SapDispatcherQueueBacklog
+        expr: sapcontrol_queue_now{type="DIA"} > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dialog dispatcher queue holds {{ $value }} requests on {{ $labels.instance }}"
+      - alert: SapSyslogErrorsRising
+        expr: sapcontrol_abap_syslog_entries{severity="red"} > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value }} red entries in the ABAP system log (SM21) on {{ $labels.instance }}"
+      - alert: SapEnqueueRejects
+        expr: increase(sapcontrol_enqueue_enqueue_rejects_total[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Enqueue server rejected requests on {{ $labels.instance }}"
+      - alert: SapControlMethodFailing
+        expr: sapcontrol_method_success == 0
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: "SAPControl method {{ $labels.method }} keeps failing on {{ $labels.instance }} (permission, or not available on this instance)"
