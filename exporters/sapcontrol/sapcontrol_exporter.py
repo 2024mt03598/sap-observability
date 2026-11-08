@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 sapcontrol_exporter - Prometheus exporter for the SAPControl web service (sapstartsrv).
@@ -26,7 +25,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from xml.sax.saxutils import escape
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 LOG = logging.getLogger("sapcontrol_exporter")
 COLORS = {"GRAY": 1, "GREY": 1, "GREEN": 2, "YELLOW": 3, "RED": 4}
 
@@ -129,9 +128,20 @@ class Registry(object):
         out = []
         for name in self.order:
             help_, mtype = self.meta[name]
+            samples = self.samples[name]
+            seen = {}
+            for labels, _ in samples:
+                key = tuple(sorted(labels.items()))
+                seen[key] = seen.get(key, 0) + 1
+            nth = {}
             out.append("# HELP %s %s" % (name, help_ or name))
             out.append("# TYPE %s %s" % (name, mtype))
-            for labels, value in self.samples[name]:
+            for labels, value in samples:
+                key = tuple(sorted(labels.items()))
+                if seen[key] > 1:
+                    # Identical label sets would make Prometheus drop samples: number them instead.
+                    nth[key] = nth.get(key, 0) + 1
+                    labels = dict(labels, index=str(nth[key]))
                 if labels:
                     lab = ",".join('%s="%s"' % (k, self._esc(v)) for k, v in sorted(labels.items()))
                     out.append("%s{%s} %s" % (name, lab, repr(float(value))))
@@ -143,6 +153,10 @@ class Registry(object):
 # --------------------------------------------------------------------------- SOAP client
 class SoapError(Exception):
     pass
+
+
+class Unsupported(SoapError):
+    """The instance does not offer this method (for example enqueue methods on a dialog instance)."""
 
 
 class ConnectError(Exception):
@@ -237,6 +251,8 @@ class SapControl(object):
             for f in first:
                 if local(f.tag) == "faultstring":
                     text = (f.text or "").strip()
+            if "not supported by this instance type" in text:
+                raise Unsupported(text)
             raise SoapError(text or "SOAP fault")
         if resp.status != 200:
             raise SoapError("HTTP %d" % resp.status)
@@ -259,7 +275,7 @@ class Ctx(object):
 
 def m_GetProcessList(x, reg):
     for p in rows(x.c.call("GetProcessList"), "process"):
-        lbl = x.lab(name=p.get("name", ""), description=p.get("description", ""))
+        lbl = x.lab(name=p.get("name", ""), description=p.get("description", ""), pid=p.get("pid", ""))
         reg.add("sapcontrol_process_status", color(p.get("dispstatus")),
                 dict(lbl, textstatus=p.get("textstatus", "")),
                 "Process state from sapstartsrv: 1=gray 2=green 3=yellow 4=red")
@@ -407,16 +423,31 @@ def _depths(nodes):
     return depths
 
 
+def _path(nodes, idx):
+    names, cur, seen = [], idx, set()
+    while cur not in seen:
+        seen.add(cur)
+        names.append(nodes[cur].get("name", ""))
+        try:
+            p = int(nodes[cur].get("parent", -1))
+        except (ValueError, TypeError):
+            break
+        if p == cur or p < 0 or p >= len(nodes):
+            break
+        cur = p
+    return "/".join(reversed(names))
+
+
 def m_GetAlertTree(x, reg):
     nodes = rows(x.c.call("GetAlertTree"), "tree")
     depths = _depths(nodes)
     counts = {}
-    for n, d in zip(nodes, depths):
+    for i, (n, d) in enumerate(zip(nodes, depths)):
         state = {1: "gray", 2: "green", 3: "yellow", 4: "red"}.get(color(n.get("ActualValue")), "unknown")
         counts[state] = counts.get(state, 0) + 1
         if d <= x.args.ccms_depth:
             reg.add("sapcontrol_ccms_node_status", color(n.get("ActualValue")),
-                    x.lab(name=n.get("name", ""), depth=d),
+                    x.lab(path=short(_path(nodes, i), 200), depth=d),
                     "CCMS alert tree node state (RZ20): 1=gray 2=green 3=yellow 4=red")
     for state in ("gray", "green", "yellow", "red"):
         reg.add("sapcontrol_ccms_nodes", counts.get(state, 0), x.lab(state=state),
@@ -573,6 +604,7 @@ class Exporter(object):
                 continue
             if (wanted is not None and name in wanted) or (wanted is None and default):
                 self.methods.append((name, fn))
+        self.unsupported = set()
         self.lock = threading.Lock()
         self.cached, self.cached_at = "", 0.0
 
@@ -584,11 +616,21 @@ class Exporter(object):
         for name, fn in self.methods:
             t0 = time.time()
             ok = 1
+            if name in self.unsupported:
+                reg.add("sapcontrol_method_unsupported", 1, dict(self.base, method=name),
+                        "1 if this instance does not offer the method (not counted as a failure)")
+                continue
             if not reachable:
                 ok = 0
             else:
                 try:
                     fn(x, reg)
+                except Unsupported as exc:
+                    LOG.info("%s is not supported by this instance (%s); skipping it from now on", name, exc)
+                    self.unsupported.add(name)
+                    reg.add("sapcontrol_method_unsupported", 1, dict(self.base, method=name),
+                            "1 if this instance does not offer the method (not counted as a failure)")
+                    continue
                 except ConnectError as exc:
                     LOG.error("cannot reach sapstartsrv: %s", exc)
                     reachable, ok = False, 0
