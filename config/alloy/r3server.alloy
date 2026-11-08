@@ -35,6 +35,11 @@ prometheus.scrape "default" {
         instance    = constants.hostname,
         __address__ = "127.0.0.1:9161",
       },
+      {
+        job         = "sapcontrol_exporter",
+        instance    = constants.hostname,
+        __address__ = "127.0.0.1:9681",
+      },
     ],
   )
 
