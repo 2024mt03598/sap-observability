@@ -177,7 +177,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"DIA\",status=~\"Running|Run\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"DIA\"})",
+          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=~\"(.*/)?DIA\",status=~\"Running|Run\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=~\"(.*/)?DIA\"})",
           "legendFormat": "DIA"
         },
         {
@@ -253,7 +253,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(sapcontrol_queue_now{instance=~\"$instance\",type=~\"UPD|UP2\"})",
+          "expr": "sum(sapcontrol_queue_now{instance=~\"$instance\",type=~\"(.*/)?(UPD|UP2)\"})",
           "legendFormat": "UPD+UP2 queue"
         }
       ],
@@ -1755,7 +1755,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"DIA\",status=~\"Running|Run\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"DIA\"})",
+          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=~\"(.*/)?DIA\",status=~\"Running|Run\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=~\"(.*/)?DIA\"})",
           "legendFormat": "DIA"
         },
         {
@@ -1911,7 +1911,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sapcontrol_queue_now{instance=~\"$instance\",type=~\"UPD|UP2\"}",
+          "expr": "sapcontrol_queue_now{instance=~\"$instance\",type=~\"(.*/)?(UPD|UP2)\"}",
           "legendFormat": "{{type}} now"
         },
         {
@@ -1920,7 +1920,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sapcontrol_queue_high{instance=~\"$instance\",type=~\"UPD|UP2\"}",
+          "expr": "sapcontrol_queue_high{instance=~\"$instance\",type=~\"(.*/)?(UPD|UP2)\"}",
           "legendFormat": "{{type}} peak"
         }
       ],
