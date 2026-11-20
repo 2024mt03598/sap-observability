@@ -177,7 +177,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"DIA\",status=~\"Running|Run\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"DIA\"})",
+          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"DIA\",status!=\"Wait\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"DIA\"})",
           "legendFormat": "DIA"
         },
         {
@@ -186,7 +186,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"BTC\",status=~\"Running|Run\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"BTC\"})",
+          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"BTC\",status!=\"Wait\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"BTC\"})",
           "legendFormat": "BTC"
         }
       ],
