@@ -19,13 +19,23 @@ groups:
           summary: "SAP process {{ $labels.name }} is {{ $labels.textstatus }} on {{ $labels.instance }}"
       - alert: SapDialogWorkProcessesBusy
         expr: |
-          sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="DIA", status=~"Running|Run"})
+          sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="DIA", status!="Waiting"})
             / sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="DIA"}) > 0.9
-        for: 5m
+        for: 1m
         labels:
           severity: warning
         annotations:
           summary: "More than 90% of dialog work processes are running on {{ $labels.instance }}"
+      - alert: SapBatchWorkProcessesBusy
+        expr: |
+          sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="BTC", status!="Waiting"})
+            / sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="BTC"}) > 0.9
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 90% of dialog work processes are running on {{ $labels.instance }}"
+
       - alert: SapDispatcherQueueBacklog
         expr: sapcontrol_queue_now{type="DIA"} > 50
         for: 5m
@@ -47,10 +57,4 @@ groups:
           severity: warning
         annotations:
           summary: "Enqueue server rejected requests on {{ $labels.instance }}"
-      - alert: SapControlMethodFailing
-        expr: sapcontrol_method_success == 0
-        for: 15m
-        labels:
-          severity: info
-        annotations:
-          summary: "SAPControl method {{ $labels.method }} keeps failing on {{ $labels.instance }} (permission, or not available on this instance)"
+      
