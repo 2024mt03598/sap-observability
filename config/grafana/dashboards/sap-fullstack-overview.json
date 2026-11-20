@@ -1773,7 +1773,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"UPD\",status=~\"Running|Run\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"UPD\"})",
+          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"UPD\",status!=\"Wait\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"UPD\"})",
           "legendFormat": "UPD"
         },
         {
@@ -1782,7 +1782,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"SPO\",status=~\"Running|Run\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=\"SPO\"})",
+          "expr": "100 * (sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=~\"UPD|UP2\",status!=\"Wait\"}) or vector(0)) / sum(sapcontrol_abap_workprocesses{instance=~\"$instance\",type=~\"UPD|UP2\"})",
           "legendFormat": "SPO"
         }
       ],
