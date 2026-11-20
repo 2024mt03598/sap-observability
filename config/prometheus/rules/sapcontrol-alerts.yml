@@ -21,7 +21,7 @@ groups:
         expr: |
           sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="DIA", status=~"Running|Run"})
             / sum by (instance, sap_instance_nr) (sapcontrol_abap_workprocesses{type="DIA"}) > 0.9
-        for: 10m
+        for: 5m
         labels:
           severity: warning
         annotations:
@@ -34,7 +34,7 @@ groups:
         annotations:
           summary: "Dialog dispatcher queue holds {{ $value }} requests on {{ $labels.instance }}"
       - alert: SapSyslogErrorsRising
-        expr: sapcontrol_abap_syslog_entries{severity="red"} > 50
+        expr: sapcontrol_abap_syslog_entries{severity="red"} > 500
         for: 5m
         labels:
           severity: warning
