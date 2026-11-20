@@ -2091,7 +2091,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "| Scenario | Why it is empty | What to add |\n|---|---|---|\n| Short dumps (ST22) | SAPControl has no dump counter | Custom Oracle metric from table SNAP (`oracledb_sap_snap_short_dumps_15m`), draft in `oracledb-custom-metrics.toml`. Basis must confirm schema, time zone and the SEQNO rule |\n| Disk read wait | The default Oracle exporter has no wait-event latency | Custom metric from V$SYSTEM_EVENT (`oracledb_system_event_*`), draft in `oracledb-custom-metrics.toml` |\n| Backup failure (BRBACKUP, BRARCHIVE) | Return codes are in SAP/BR*Tools logs, not in any current metric | Basis/DBA to say where the return code is stored (DB13 log table or BR*Tools log files), then expose it as `sap_backup_last_return_code{function}` |\n| Update backlog and cancelled V2 updates | Only the queue length is available | Data from SM13 (update request table) as a custom metric; ask Basis for the table and status values |\n| Enqueue lock age over 24 h | The lock table call returns no time stamp | Data from SM12 or the enqueue server; also an exporter on the central services instance for the lock count |\n"
+        "content": ""
       }
     }
   ]
